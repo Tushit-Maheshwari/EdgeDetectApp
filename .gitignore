@@ -1,0 +1,14 @@
+*.apk
+*.aar
+*.dex
+*.class
+bin/
+build/
+.gradle/
+.idea/
+obj/
+libs/
+web/node_modules/
+web/public/*.js
+*.log
+.DS_Store

@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">EdgeDetectApp</string>
+    <string name="camera_permission_required">Camera permission is required</string>
+    <string name="mode_raw">Mode: Raw Camera</string>
+    <string name="mode_edge">Mode: Edge Detection</string>
+</resources>
