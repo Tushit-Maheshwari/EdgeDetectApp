@@ -1,94 +1,498 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EdgeDetect Viewer</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, rgb(102, 126, 234) 0%, rgb(118, 75, 162) 100%);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 30px;
-            border-radius: 20px;
-            max-width: 800px;
-            width: 100%;
-        }
-        
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        
-        .viewer-container {
-            background: black;
-            border-radius: 10px;
-            padding: 10px;
-            margin-bottom: 20px;
-        }
-        
-        #frameCanvas {
-            width: 100%;
-            height: auto;
-            display: block;
-            border-radius: 5px;
-        }
-        
-        .info-panel {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-        }
-        
-        .info-card {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        
-        .info-label {
-            font-size: 0.9em;
-            opacity: 0.8;
-            margin-bottom: 5px;
-        }
-        
-        .info-value {
-            font-size: 1.8em;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EdgeDetect Viewer</title>
+
+  <!-- Nice modern font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg-1: #0f172a;
+      --accent-1: #7c5cff;
+      --accent-2: #4fd1c5;
+      --glass: rgba(255,255,255,0.06);
+      --glass-2: rgba(255,255,255,0.04);
+      --card: rgba(255,255,255,0.06);
+      --muted: rgba(255,255,255,0.7);
+      --glass-border: rgba(255,255,255,0.08);
+      --radius: 14px;
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(124,92,255,0.12), transparent 12%),
+        radial-gradient(1000px 500px at 95% 90%, rgba(79,209,197,0.08), transparent 12%),
+        linear-gradient(180deg, #071029 0%, #0b1324 100%);
+      color: #e6eef8;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+      box-sizing:border-box;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:1100px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border-radius: calc(var(--radius) + 6px);
+      padding:26px;
+      box-shadow: 0 12px 40px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.02);
+      backdrop-filter: blur(6px) saturate(120%);
+    }
+
+    .header{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      margin-bottom:18px;
+    }
+
+    .logo {
+      width:56px;
+      height:56px;
+      border-radius:12px;
+      background: linear-gradient(135deg,var(--accent-1), #5ed3c5);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 6px 18px rgba(124,92,255,0.12), 0 2px 6px rgba(0,0,0,0.5);
+      flex:0 0 56px;
+    }
+
+    .logo svg { filter: drop-shadow(0 4px 12px rgba(124,92,255,0.18)); }
+
+    h1{
+      margin:0;
+      font-size:20px;
+      font-weight:600;
+      letter-spacing: -0.2px;
+      color: white;
+    }
+
+    .sub {
+      font-size:13px;
+      color: var(--muted);
+      margin-top:4px;
+    }
+
+    .main {
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:20px;
+      align-items:start;
+    }
+
+    /* Viewer card */
+    .viewer-card{
+      background: var(--glass);
+      border-radius: var(--radius);
+      padding:14px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 8px 30px rgba(2,6,23,0.55);
+    }
+
+    .canvas-wrap{
+      background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.45));
+      border-radius: 10px;
+      padding:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      overflow:hidden;
+    }
+
+    canvas#frameCanvas{
+      width:100%;
+      height:auto;
+      max-height:520px;
+      border-radius:8px;
+      box-shadow: 0 8px 40px rgba(2,6,23,0.6);
+      display:block;
+      background: #000;
+    }
+
+    .controls{
+      margin-top:12px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .btn {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      color: white;
+      border: 1px solid rgba(255,255,255,0.06);
+      padding:8px 12px;
+      border-radius:10px;
+      font-weight:600;
+      cursor:pointer;
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      font-size:13px;
+    }
+    .btn:hover{ transform:translateY(-3px); box-shadow:0 10px 28px rgba(2,6,23,0.5); }
+    .btn.ghost{ background:transparent; border:1px dashed rgba(255,255,255,0.04); color:var(--muted); font-weight:500; }
+    .toggle {
+      background:linear-gradient(90deg,var(--accent-1), #5ed3c5);
+      padding:8px 10px;
+      border-radius:10px;
+      box-shadow:0 8px 24px rgba(124,92,255,0.12);
+      color:#04202a;
+    }
+
+    /* Right column info */
+    .info {
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .cards {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      padding:14px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.03);
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .card .icon {
+      width:44px;
+      height:44px;
+      border-radius:10px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex:0 0 44px;
+      color:var(--accent-1);
+      font-weight:700;
+      font-size:16px;
+    }
+
+    .card .meta {
+      display:flex;
+      flex-direction:column;
+    }
+    .card .label { font-size:12px; color:var(--muted); }
+    .card .value { font-size:20px; font-weight:700; color:white; margin-top:2px; }
+
+    .status-dot { width:10px; height:10px; border-radius:50%; background: #ffdd57; box-shadow: 0 2px 8px rgba(255,221,87,0.14); margin-right:8px; display:inline-block; vertical-align:middle; }
+
+    .small {
+      font-size:12px;
+      color:var(--muted);
+      margin-top:8px;
+    }
+
+    /* Responsive */
+    @media (max-width:980px){
+      .main{ grid-template-columns: 1fr; }
+      .info{ order:2; }
+    }
+
+  </style>
 </head>
 <body>
-    <div class="container">
+  <div class="wrap" role="main" aria-label="EdgeDetect Viewer">
+    <div class="header">
+      <div class="logo" aria-hidden="true">
+        <!-- stylized edge/scan icon -->
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="20" rx="5" fill="white" fill-opacity="0.08"/>
+          <path d="M6 12h12M12 6v12" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+          <path d="M3 9v0a1 1 0 0 1 1-1h3" stroke="white" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.13"/>
+        </svg>
+      </div>
+      <div>
         <h1>EdgeDetect Viewer</h1>
-        <div class="viewer-container">
-            <canvas id="frameCanvas"></canvas>
-        </div>
-        <div class="info-panel">
-            <div class="info-card">
-                <div class="info-label">FPS</div>
-                <div class="info-value">13</div>
-            </div>
-            <div class="info-card">
-                <div class="info-label">Resolution</div>
-                <div class="info-value">640x480</div>
-            </div>
-            <div class="info-card">
-                <div class="info-label">Status</div>
-                <div class="info-value">Ready</div>
-            </div>
-        </div>
+        <div class="sub">Live preview, status, and simple controls for testing edge detection output</div>
+      </div>
     </div>
-    <script src="index.js"></script>
+
+    <div class="main">
+      <section class="viewer-card" aria-label="Viewer">
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="frameCanvas" width="640" height="480" aria-label="Frame canvas"></canvas>
+        </div>
+
+        <div class="controls" role="group" aria-label="Viewer controls">
+          <button id="toggleEdge" class="btn toggle" title="Toggle simulated edge overlay">Edge: On</button>
+          <label class="btn ghost" for="uploadInput" title="Upload an image to preview">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="opacity:0.9"><path d="M12 3v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="13" width="18" height="8" rx="2" stroke="currentColor" stroke-width="1.6"/></svg>
+            Upload
+            <input id="uploadInput" type="file" accept="image/*" style="display:none" />
+          </label>
+          <button id="fitBtn" class="btn ghost" title="Reset zoom/fit">Fit</button>
+
+          <div style="flex:1"></div>
+
+          <div style="display:flex;flex-direction:column;align-items:flex-end;">
+            <div class="small" id="resolutionText">640 × 480</div>
+            <div class="small" id="statusText" style="opacity:0.9"><span class="status-dot" id="statusDot"></span> Ready</div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="info" aria-label="Information panel">
+        <div class="cards" role="list">
+          <div class="card" role="listitem">
+            <div class="icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </div>
+            <div class="meta">
+              <div class="label">FPS</div>
+              <div class="value" id="fpsValue">0</div>
+            </div>
+          </div>
+
+          <div class="card" role="listitem">
+            <div class="icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/></svg>
+            </div>
+            <div class="meta">
+              <div class="label">Resolution</div>
+              <div class="value" id="resValue">640 × 480</div>
+            </div>
+          </div>
+
+          <div class="card" role="listitem">
+            <div class="icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/></svg>
+            </div>
+            <div class="meta">
+              <div class="label">Status</div>
+              <div class="value" id="statusValue">Ready</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:6px;padding:12px;background:var(--glass-2);border-radius:10px;border:1px solid rgba(255,255,255,0.02);">
+          <div class="label" style="font-size:13px;color:var(--muted)">Tips</div>
+          <div style="margin-top:8px;color:var(--muted);font-size:13px">
+            Upload an image or toggle the edge overlay to preview how edges would look. Canvas auto-resizes to fit the viewer.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // Nice, self-contained client script to demo a lively viewer:
+    (function () {
+      const canvas = document.getElementById('frameCanvas');
+      const ctx = canvas.getContext('2d');
+      const fpsEl = document.getElementById('fpsValue');
+      const resEl = document.getElementById('resValue');
+      const statusEl = document.getElementById('statusValue');
+      const statusText = document.getElementById('statusText');
+      const statusDot = document.getElementById('statusDot');
+      const resText = document.getElementById('resolutionText');
+      const toggleEdgeBtn = document.getElementById('toggleEdge');
+      const uploadInput = document.getElementById('uploadInput');
+      const fitBtn = document.getElementById('fitBtn');
+      const canvasWrap = document.getElementById('canvasWrap');
+
+      // initial logical size (matches original)
+      let logicalW = 640, logicalH = 480;
+      let edgeOn = true;
+      let uploadedImg = null;
+
+      // device pixel ratio scaling
+      function resizeCanvasToDisplaySize() {
+        const rect = canvasWrap.getBoundingClientRect();
+        // keep same aspect ratio as logical
+        const targetWidth = Math.min(rect.width - 20, 1000);
+        const aspect = logicalW / logicalH;
+        const displayW = targetWidth;
+        const displayH = Math.round(displayW / aspect);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.style.width = displayW + 'px';
+        canvas.style.height = displayH + 'px';
+        canvas.width = Math.round(displayW * dpr);
+        canvas.height = Math.round(displayH * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        resEl.textContent = `${logicalW} × ${logicalH}`;
+        resText.textContent = `${logicalW} × ${logicalH}`;
+      }
+
+      // draw a demo frame: if an image is uploaded, draw it, otherwise animated gradient + lines
+      let t0 = performance.now();
+      let frames = 0;
+      let lastFps = 0;
+      let lastFpsUpdate = performance.now();
+
+      function drawDemo(ts) {
+        resizeCanvasToDisplaySize();
+        const w = canvas.width / (window.devicePixelRatio || 1);
+        const h = canvas.height / (window.devicePixelRatio || 1);
+
+        // background
+        let g = ctx.createLinearGradient(0, 0, w, h);
+        g.addColorStop(0, '#071029');
+        g.addColorStop(1, '#0b1426');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+
+        // if uploaded image, draw it centered and scaled
+        if (uploadedImg) {
+          const img = uploadedImg;
+          const imgRatio = img.width / img.height;
+          let drawW = w, drawH = h;
+          if (w / h > imgRatio) {
+            drawW = h * imgRatio;
+          } else {
+            drawH = w / imgRatio;
+          }
+          const dx = (w - drawW) / 2;
+          const dy = (h - drawH) / 2;
+          ctx.drawImage(img, dx, dy, drawW, drawH);
+
+          // optionally overlay a subtle vignette
+          ctx.fillStyle = 'rgba(0,0,0,0.12)';
+          ctx.fillRect(0, 0, w, h);
+        } else {
+          // animated bands for demo
+          const now = ts * 0.001;
+          for (let i = 0; i < 6; i++) {
+            ctx.fillStyle = `rgba(${50 + i*30}, ${120 + i*15}, ${200 - i*10}, ${0.06})`;
+            const y = (Math.sin(now * (0.7 + i*0.2) + i) * 0.5 + 0.5) * h;
+            ctx.beginPath();
+            ctx.ellipse(w * ((i+1)/8), y, w*0.8, 60 + i*8, 0, 0, Math.PI*2);
+            ctx.fill();
+          }
+        }
+
+        // draw a moving scanline
+        const scanY = (Math.sin(ts * 0.0027) * 0.5 + 0.5) * h;
+        const lineGrad = ctx.createLinearGradient(0, scanY - 30, 0, scanY + 30);
+        lineGrad.addColorStop(0, 'rgba(255,255,255,0.02)');
+        lineGrad.addColorStop(0.5, 'rgba(124,92,255,0.18)');
+        lineGrad.addColorStop(1, 'rgba(255,255,255,0.02)');
+        ctx.fillStyle = lineGrad;
+        ctx.fillRect(0, scanY - 2, w, 4);
+
+        // optional "edge" overlay: draw high-contrast lines to simulate edges
+        if (edgeOn) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          // some random procedural lines to simulate edges
+          const seed = Math.sin(ts * 0.0005);
+          for (let i = 0; i < 18; i++) {
+            const sx = (i / 18) * w + Math.sin(ts * 0.0003 + i) * 6;
+            ctx.moveTo(sx, 12);
+            ctx.lineTo(sx + Math.cos(seed + i) * 8, h - 12);
+          }
+          ctx.stroke();
+          ctx.restore();
+
+          // faint colored outline
+          ctx.strokeStyle = 'rgba(124,92,255,0.08)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(6, 6, w - 12, h - 12);
+        }
+
+        // small overlay text
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = '12px Poppins, system-ui, sans-serif';
+        ctx.fillText('EdgeDetect • Preview', 12, 18);
+
+        // FPS counting
+        frames++;
+        const now = performance.now();
+        if (now - lastFpsUpdate >= 500) {
+          const dt = now - lastFpsUpdate;
+          lastFps = Math.round(frames / (dt / 1000));
+          fpsEl.textContent = lastFps;
+          frames = 0;
+          lastFpsUpdate = now;
+        }
+
+        requestAnimationFrame(drawDemo);
+      }
+
+      // initial resize + start animation
+      window.addEventListener('resize', () => requestAnimationFrame(resizeCanvasToDisplaySize));
+      resizeCanvasToDisplaySize();
+      statusEl.textContent = 'Ready';
+      statusDot.style.background = '#4fd1c5'; // greenish
+      requestAnimationFrame(drawDemo);
+
+      // controls
+      toggleEdgeBtn.addEventListener('click', () => {
+        edgeOn = !edgeOn;
+        toggleEdgeBtn.textContent = 'Edge: ' + (edgeOn ? 'On' : 'Off');
+        toggleEdgeBtn.style.opacity = edgeOn ? '1' : '0.86';
+        statusEl.textContent = edgeOn ? 'Edge overlay enabled' : 'Edge overlay disabled';
+        statusDot.style.background = edgeOn ? '#4fd1c5' : '#ff6b6b';
+      });
+
+      uploadInput.addEventListener('change', (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        const url = URL.createObjectURL(f);
+        const img = new Image();
+        statusEl.textContent = 'Loading image...';
+        statusDot.style.background = '#ffd166';
+        img.onload = () => {
+          uploadedImg = img;
+          logicalW = img.width;
+          logicalH = img.height;
+          resizeCanvasToDisplaySize();
+          statusEl.textContent = 'Image loaded';
+          statusDot.style.background = '#4fd1c5';
+          resEl.textContent = `${logicalW} × ${logicalH}`;
+          URL.revokeObjectURL(url);
+        };
+        img.onerror = () => {
+          statusEl.textContent = 'Failed to load image';
+          statusDot.style.background = '#ff6b6b';
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      });
+
+      fitBtn.addEventListener('click', () => {
+        uploadedImg = null;
+        logicalW = 640;
+        logicalH = 480;
+        resizeCanvasToDisplaySize();
+        statusEl.textContent = 'Fit to default';
+        statusDot.style.background = '#4fd1c5';
+      });
+
+      // keyboard shortcut: E toggles edge
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'e' || e.key === 'E') {
+          toggleEdgeBtn.click();
+        }
+      });
+
+    })();
+  </script>
 </body>
 </html>
